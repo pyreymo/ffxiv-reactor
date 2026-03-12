@@ -1,8 +1,7 @@
 using Dalamud.Game.Command;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using System.IO;
-using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using SamplePlugin.Windows;
 
@@ -18,51 +17,50 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] public IPluginLog Log { get; private set; } = null!;
 
-    private const string CommandName = "/py";
+    private const string MainWindowCmd = "/py";
+    private const string ExcelWindowCmd = "/ex";
 
     public Configuration Configuration { get; init; }
 
     public readonly WindowSystem WindowSystem = new("SamplePlugin");
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
+    private ExcelWindow ExcelWindow { get; init; }
 
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-        // You might normally want to embed resources and load them from the manifest stream
-        //var goatImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
-
+        // Config + Main 窗口实例化
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
 
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+        CommandManager.AddHandler(MainWindowCmd, new CommandInfo(OnMainWindowCommand)
         {
-            HelpMessage = "A useful message to display in /xlhelp"
+            HelpMessage = "打开插件主窗口"
         });
 
-        // Tell the UI system that we want our windows to be drawn through the window system
+        // Excel 窗口实例化
+        ExcelWindow = new ExcelWindow(this);
+        WindowSystem.AddWindow(ExcelWindow);
+
+        CommandManager.AddHandler(ExcelWindowCmd, new CommandInfo(OnExcelWindowCommand)
+        {
+            HelpMessage = "打开数据预览窗口"
+        });
+
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
 
-        // This adds a button to the plugin installer entry of this plugin which allows
-        // toggling the display status of the configuration ui
+        // 注册 UI 事件
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
-
-        // Adds another button doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
-
-        // Add a simple message to the log with level set to information
-        // Use /xllog to open the log window in-game
-        // Example Output: 00:57:54.959 | INF | [SamplePlugin] ===A cool log message from Sample Plugin===
-        Log.Information($"===A cool log message from {PluginInterface.Manifest.Name}===");
     }
 
     public void Dispose()
     {
-        // Unregister all actions to not leak anything during disposal of plugin
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
@@ -71,16 +69,22 @@ public sealed class Plugin : IDalamudPlugin
 
         ConfigWindow.Dispose();
         MainWindow.Dispose();
+        ExcelWindow.Dispose();
 
-        CommandManager.RemoveHandler(CommandName);
+        CommandManager.RemoveHandler(MainWindowCmd);
+        CommandManager.RemoveHandler(ExcelWindowCmd);
     }
 
-    private void OnCommand(string command, string args)
+    private void OnMainWindowCommand(string command, string args)
     {
-        // In response to the slash command, toggle the display status of our main ui
         MainWindow.Toggle();
+    }
+    private void OnExcelWindowCommand(string command, string args)
+    {
+        ExcelWindow.Toggle();
     }
 
     public void ToggleConfigUi() => ConfigWindow.Toggle();
     public void ToggleMainUi() => MainWindow.Toggle();
+    public void ToggleExcelUi() => ExcelWindow.Toggle();
 }
