@@ -10,7 +10,7 @@ using Dalamud.Interface.Windowing;
 using Lumina.Excel.Sheets;
 using Action = Lumina.Excel.Sheets.Action;
 
-namespace SamplePlugin.Windows;
+namespace FFReactor.Windows;
 
 public class MainWindow : Window, IDisposable
 {
