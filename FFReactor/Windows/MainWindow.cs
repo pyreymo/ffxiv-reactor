@@ -143,10 +143,10 @@ public class MainWindow : Window, IDisposable
         var isIdQuery = uint.TryParse(query, out var queryId);
 
         // 过滤总技能池，匹配 ID 或 名称
-        searchResults = allValidActions.Where(a =>
+        searchResults = [.. allValidActions.Where(a =>
             (isIdQuery && a.RowId == queryId) ||
-            a.Name.ToString().ToLowerInvariant().Contains(query)
-        ).ToList();
+            a.Name.ToString().Contains(query, StringComparison.InvariantCultureIgnoreCase)
+        )];
     }
 
     private void DrawJobList()
@@ -193,7 +193,7 @@ public class MainWindow : Window, IDisposable
     private void DrawActionGrid()
     {
         // 决定要显示的数据源：如果搜索框有内容，显示搜索结果；否则显示左侧选中的职业技能
-        List<Action> actionsToDisplay;
+        List<Action>? actionsToDisplay;
         var isSearching = !string.IsNullOrWhiteSpace(searchText);
 
         if (isSearching)
